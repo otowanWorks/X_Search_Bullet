@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Xサーチバレット</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    font-size: 13px;
+    background: #fff;
+    color: #1a1a1a;
+    width: 400px;
+    max-height: 560px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== ヘッダー ===== */
+.header {
+    padding: 11px 14px;
+    background: #000;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.header-icon { font-size: 15px; font-weight: 900; letter-spacing: -1px; }
+.header-title { font-size: 14px; font-weight: 700; }
+.header-sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-left: auto; }
+
+/* ===== ユーザーID バー（折りたたみトリガー） ===== */
+.user-section {
+    padding: 8px 14px;
+    background: #f7f7f7;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+}
+.user-section:hover { background: #efefef; }
+.user-label { font-size: 11px; color: #666; font-weight: 600; white-space: nowrap; }
+.active-display {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: #111;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.active-display.unset { color: #bbb; font-weight: 400; font-style: italic; }
+.toggle-arrow {
+    font-size: 9px;
+    color: #999;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    line-height: 1;
+}
+.toggle-arrow.open { transform: rotate(180deg); }
+
+/* ===== 折りたたみパネル ===== */
+.user-panel {
+    background: #f7f7f7;
+    border-bottom: 2px solid #ddd;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.22s ease;
+    flex-shrink: 0;
+}
+.user-panel.open { max-height: 230px; }
+
+/* アカウント一覧 */
+.panel-accounts {
+    padding: 8px 14px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 130px;
+    overflow-y: auto;
+}
+.panel-accounts::-webkit-scrollbar { width: 3px; }
+.panel-accounts::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
+.panel-empty { font-size: 12px; color: #bbb; padding: 4px 0; }
+
+.panel-acc-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 9px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fff;
+    transition: border-color 0.1s, background 0.1s;
+}
+.panel-acc-row.active-row { border-color: #1d9bf0; background: #f0f8ff; }
+
+.panel-acc-radio {
+    accent-color: #1d9bf0;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.panel-acc-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #111;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.panel-acc-id { font-size: 11px; color: #999; white-space: nowrap; flex-shrink: 0; }
+.panel-del-btn {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color 0.15s;
+}
+.panel-del-btn:hover { color: #e55; }
+
+/* 追加フォーム */
+.panel-add-form {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px 9px;
+}
+.panel-at { font-size: 13px; font-weight: 700; color: #666; flex-shrink: 0; }
+.panel-name-input {
+    width: 88px;
+    padding: 4px 7px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    height: 26px;
+    font-family: inherit;
+    flex-shrink: 0;
+}
+.panel-id-input {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 7px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    height: 26px;
+    font-family: inherit;
+}
+.panel-name-input:focus, .panel-id-input:focus {
+    outline: none;
+    border-color: #1d9bf0;
+    box-shadow: 0 0 0 2px rgba(29,155,240,0.12);
+}
+.panel-name-input.error, .panel-id-input.error {
+    border-color: #e0a800;
+    box-shadow: 0 0 0 2px rgba(224,168,0,0.18);
+}
+.panel-add-btn {
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 0 11px;
+    height: 26px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.panel-add-btn:hover { background: #333; }
+
+/* ===== スクロールエリア ===== */
+.scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 10px;
+}
+.scroll-area::-webkit-scrollbar { width: 4px; }
+.scroll-area::-webkit-scrollbar-track { background: #f0f0f0; }
+.scroll-area::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
+/* ===== カテゴリ ===== */
+.category-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    padding: 6px 14px;
+    letter-spacing: 0.04em;
+    background: #555;
+    margin-top: 6px;
+}
+.category:first-child .category-title { margin-top: 0; }
+
+/* ===== コマンド行 ===== */
+.cmd-row {
+    padding: 6px 14px;
+    transition: background 0.1s;
+}
+.cmd-row:hover { background: #f5f8ff; }
+
+.cmd-row-top {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 5px;
+    align-items: start;
+    min-height: 26px;
+}
+.cmd-label {
+    font-size: 12.5px;
+    color: #222;
+    line-height: 1.5;
+    padding-top: 3px;
+}
+
+.cmd-params {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+.param-wrap {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.param-unit { font-size: 11px; color: #888; white-space: nowrap; }
+
+.param-input {
+    padding: 2px 5px;
+    border: 1px solid #d0d0d0;
+    border-radius: 3px;
+    font-size: 11.5px;
+    height: 24px;
+    color: #333;
+    background: #fff;
+    font-family: inherit;
+}
+.param-input[type="date"]   { width: 120px; }
+.param-input[type="number"] { width: 58px; text-align: right; }
+.param-input[type="text"]   { width: 130px; }
+.param-input.wide { width: 220px; }
+.param-input:focus { outline: none; border-color: #1d9bf0; }
+.param-input.error { border-color: #e0a800; box-shadow: 0 0 0 2px rgba(224,168,0,0.25); }
+
+.copy-btn {
+    width: 30px;
+    background: none;
+    color: #aaa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    height: 26px;
+    transition: all 0.15s;
+    font-family: inherit;
+    text-align: center;
+    line-height: 1;
+}
+.copy-btn:hover { border-color: #aaa; color: #555; }
+.copy-btn.copied { border-color: #19a34a; color: #19a34a; }
+.copy-btn.no-id  { border-color: #e0a800; color: #e0a800; }
+
+.open-btn {
+    width: 48px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    height: 26px;
+    transition: background 0.15s;
+    font-family: inherit;
+    text-align: center;
+}
+.open-btn:hover { background: #333; }
+.open-btn.no-id { background: #e0a800; }
+
+/* ===== フッター ===== */
+.footer {
+    padding: 7px 14px;
+    border-top: 1px solid #e0e0e0;
+    font-size: 11px;
+    color: #aaa;
+    flex-shrink: 0;
+    background: #fafafa;
+    line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <span class="header-icon">𝕏</span>
+    <span class="header-title">Xサーチバレット</span>
+    <span class="header-sub">直接Xを開く&コマンドをコピー</span>
+</div>
+
+<!-- 折りたたみトリガー -->
+<div class="user-section" id="userSection">
+    <span class="user-label">選択ID</span>
+    <span class="active-display unset" id="activeDisplay">未設定（クリックして登録）</span>
+    <span class="toggle-arrow" id="toggleArrow">▼</span>
+</div>
+
+<!-- 折りたたみパネル -->
+<div class="user-panel" id="userPanel">
+    <div class="panel-accounts" id="panelAccounts"></div>
+    <div class="panel-add-form">
+        <input type="text" class="panel-name-input" id="panelNameInput" placeholder="表示名">
+        <span class="panel-at">@</span>
+        <input type="text" class="panel-id-input" id="panelIdInput" placeholder="username">
+        <button class="panel-add-btn" id="panelAddBtn">追加</button>
+    </div>
+</div>
+
+<div class="scroll-area" id="commandList"></div>
+
+<div class="footer">
+    「開く」で直接検索 / 📋 でコマンドをコピー<br>
+    ※条件が厳しいと、X側「話題のポスト」「最新」タブのいずれかに結果が出ないことがあります
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

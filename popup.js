@@ -1,11 +1,16 @@
 // ===== 日付ユーティリティ =====
-function getTodayStr() {
-    return new Date().toISOString().slice(0, 10);
+function formatDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
 }
-function getMonthAgoStr() {
+function getTodayStr() {
+    return formatDate(new Date());
+}
+function getWeekAgoStr() {
     const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 10);
+    return formatDate(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7));
 }
 
 // ===== コマンド定義 =====
@@ -26,7 +31,7 @@ const COMMAND_GROUPS = [
                 label: '選択IDの投稿を期間検索',
                 template: 'from:{userId} since:{since} until:{until} exclude:nativeretweets exclude:replies',
                 params: [
-                    { key: 'since', type: 'date', unit: 'から', default: () => getMonthAgoStr() },
+                    { key: 'since', type: 'date', unit: 'から', default: () => getWeekAgoStr() },
                     { key: 'until', type: 'date', unit: 'まで', default: () => getTodayStr() }
                 ]
             },
@@ -77,7 +82,7 @@ const COMMAND_GROUPS = [
                 label: '投稿を期間で検索（返信・リポスト含む）',
                 template: 'from:{userId} since:{since} until:{until}',
                 params: [
-                    { key: 'since', type: 'date', unit: 'から', default: () => getMonthAgoStr() },
+                    { key: 'since', type: 'date', unit: 'から', default: () => getWeekAgoStr() },
                     { key: 'until', type: 'date', unit: 'まで', default: () => getTodayStr() }
                 ]
             },
@@ -101,7 +106,7 @@ const COMMAND_GROUPS = [
                 label: '期間といいね数で検索（返信・リポスト含む）',
                 template: 'from:{userId} since:{since} until:{until} min_faves:{faves}',
                 params: [
-                    { key: 'since', type: 'date', unit: 'から', default: () => getMonthAgoStr() },
+                    { key: 'since', type: 'date', unit: 'から', default: () => getWeekAgoStr() },
                     { key: 'until', type: 'date', unit: 'まで', default: () => getTodayStr() },
                     { key: 'faves', type: 'number', unit: 'いいね以上', default: () => 100, min: 1 }
                 ]
@@ -125,7 +130,7 @@ const COMMAND_GROUPS = [
                 template: '{keyword} since:{since} until:{until}',
                 params: [
                     { key: 'keyword', type: 'text', placeholder: 'キーワード', default: () => '' },
-                    { key: 'since',   type: 'date', unit: 'から', default: () => getMonthAgoStr() },
+                    { key: 'since',   type: 'date', unit: 'から', default: () => getWeekAgoStr() },
                     { key: 'until',   type: 'date', unit: 'まで', default: () => getTodayStr() }
                 ]
             },
@@ -314,9 +319,15 @@ document.getElementById('panelAddBtn').addEventListener('click', (e) => { e.stop
 // ===== until を +1日補正（X の until: は指定日を含まないため） =====
 function addOneDay(dateStr) {
     if (!dateStr) return dateStr;
-    const d = new Date(dateStr + 'T00:00:00');
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return formatDate(new Date(y, m - 1, d + 1));
+}
+
+// ===== since を -1日補正（X の since: は指定日を含まないため） =====
+function subOneDay(dateStr) {
+    if (!dateStr) return dateStr;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return formatDate(new Date(y, m - 1, d - 1));
 }
 
 // ===== コマンド文字列生成 =====
